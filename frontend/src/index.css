@@ -1,0 +1,185 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* FINAI Design System — All colors in HSL */
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  :root {
+    /* Core surfaces */
+    --background: 220 20% 97%;
+    --foreground: 222 30% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 30% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 30% 10%;
+
+    /* FINAI Brand — Deep teal */
+    --primary: 174 72% 30%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 174 80% 42%;
+    --primary-subtle: 174 60% 94%;
+
+    /* Secondary — Slate blue */
+    --secondary: 218 30% 92%;
+    --secondary-foreground: 222 30% 20%;
+
+    --muted: 220 20% 93%;
+    --muted-foreground: 220 12% 50%;
+
+    --accent: 174 60% 94%;
+    --accent-foreground: 174 72% 20%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 174 72% 30%;
+
+    --radius: 0.75rem;
+
+    /* Chat specific */
+    --chat-user-bg: 174 72% 30%;
+    --chat-user-fg: 0 0% 100%;
+    --chat-ai-bg: 0 0% 100%;
+    --chat-ai-fg: 222 30% 10%;
+    --chat-surface: 220 20% 97%;
+
+    /* Offer card */
+    --offer-border: 174 50% 75%;
+    --offer-accent: 174 72% 30%;
+    --offer-badge: 40 90% 52%;
+
+    /* Sidebar (unused but required) */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(174 72% 30%), hsl(195 80% 35%));
+    --gradient-card: linear-gradient(160deg, hsl(174 60% 96%) 0%, hsl(0 0% 100%) 60%);
+    --shadow-card: 0 2px 16px -4px hsl(174 72% 30% / 0.12), 0 1px 4px -2px hsl(0 0% 0% / 0.06);
+    --shadow-offer: 0 4px 24px -6px hsl(174 72% 30% / 0.20), 0 2px 8px -3px hsl(0 0% 0% / 0.08);
+  }
+
+  .dark {
+    --background: 222 28% 9%;
+    --foreground: 210 30% 95%;
+
+    --card: 222 25% 13%;
+    --card-foreground: 210 30% 95%;
+
+    --popover: 222 25% 13%;
+    --popover-foreground: 210 30% 95%;
+
+    --primary: 174 65% 42%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 174 75% 52%;
+    --primary-subtle: 174 40% 15%;
+
+    --secondary: 222 22% 18%;
+    --secondary-foreground: 210 30% 85%;
+
+    --muted: 222 22% 16%;
+    --muted-foreground: 220 12% 55%;
+
+    --accent: 174 40% 15%;
+    --accent-foreground: 174 60% 70%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 22% 20%;
+    --input: 222 22% 20%;
+    --ring: 174 65% 42%;
+
+    /* Chat specific dark */
+    --chat-user-bg: 174 65% 36%;
+    --chat-user-fg: 0 0% 100%;
+    --chat-ai-bg: 222 25% 14%;
+    --chat-ai-fg: 210 30% 95%;
+    --chat-surface: 222 28% 9%;
+
+    --offer-border: 174 40% 30%;
+    --offer-accent: 174 65% 42%;
+    --offer-badge: 40 85% 55%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --gradient-hero: linear-gradient(135deg, hsl(174 65% 32%), hsl(195 70% 28%));
+    --gradient-card: linear-gradient(160deg, hsl(174 30% 14%) 0%, hsl(222 25% 13%) 60%);
+    --shadow-card: 0 2px 16px -4px hsl(0 0% 0% / 0.3), 0 1px 4px -2px hsl(0 0% 0% / 0.2);
+    --shadow-offer: 0 4px 24px -6px hsl(174 65% 20% / 0.4), 0 2px 8px -3px hsl(0 0% 0% / 0.3);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 99px; }
+
+  .gradient-hero { background: var(--gradient-hero); }
+  .gradient-card { background: var(--gradient-card); }
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-offer { box-shadow: var(--shadow-offer); }
+}
+
+/* Typing cursor animation */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Smooth message appear */
+@keyframes message-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.message-in {
+  animation: message-in 0.3s ease-out forwards;
+}

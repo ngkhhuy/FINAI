@@ -1,0 +1,109 @@
+{
+  "header": {
+    "tagline": "Asesor de Préstamos",
+    "newChat": "Nueva Sesión",
+    "toggleTheme": "Cambiar modo claro/oscuro",
+    "toggleLang": "Cambiar a inglés"
+  },
+  "input": {
+    "quickLabel": "Rápido:",
+    "placeholder": "Escribe tu pregunta… (Enter para enviar)",
+    "exploreLink": "Explorar todos los productos de préstamo",
+    "shiftEnterHint": "Shift+Enter para nueva línea",
+    "disclaimerBold": "no es una institución crediticia.",
+    "disclaimerRest": "La información es solo de referencia. Las tasas y condiciones pueden cambiar según la aprobación de cada prestamista.",
+    "amountChips": [
+      { "label": "10M VND", "value": "10 millones VND" },
+      { "label": "30M VND", "value": "30 millones VND" },
+      { "label": "50M VND", "value": "50 millones VND" },
+      { "label": "100M VND", "value": "100 millones VND" },
+      { "label": "500M VND", "value": "500 millones VND" }
+    ],
+    "quickChips": [
+      { "label": "🏦 Banco", "value": "Préstamo bancario" },
+      { "label": "📱 Online rápido", "value": "Préstamo online con desembolso rápido" },
+      { "label": "📆 12 meses", "value": "Plazo 12 meses" },
+      { "label": "📆 36 meses", "value": "Plazo 36 meses" },
+      { "label": "💼 Solo DNI", "value": "Solo se necesita DNI" }
+    ]
+  },
+  "suggestions": {
+    "title": "¡Hola! Soy FINAI",
+    "subtitle": "Tu asesor inteligente de préstamos. ¡Cuéntame qué necesitas!",
+    "items": [
+      {
+        "emoji": "💰",
+        "label": "Préstamo consumo 50M",
+        "value": "Quiero un préstamo de consumo de unos 50 millones VND, a pagar en 24 meses. ¿Cuáles son mis mejores opciones?"
+      },
+      {
+        "emoji": "🏠",
+        "label": "Vivienda / Inmobiliaria",
+        "value": "Estoy buscando un préstamo hipotecario de 1–2 mil millones VND. ¿Cuáles son las condiciones y tasas actuales?"
+      },
+      {
+        "emoji": "🚗",
+        "label": "Préstamo vehicular",
+        "value": "Quiero financiar un coche o moto. ¿Qué paquete me conviene y cuáles son las tasas?"
+      },
+      {
+        "emoji": "📊",
+        "label": "Comparar tasas",
+        "value": "Ayúdame a comparar las tasas de interés bancarias actuales y elegir el mejor paquete."
+      }
+    ]
+  },
+  "offerCard": {
+    "applyButton": "Solicitar",
+    "labelAmount": "Monto",
+    "labelTerm": "Plazo",
+    "labelAPR": "TAE",
+    "labelSpeed": "Velocidad",
+    "aprDisclaimerBold": "La TAE es solo referencial;",
+    "aprDisclaimerRest": " los términos finales dependen de la aprobación de cada prestamista.",
+    "commonRequirementsLabel": "Requisitos comunes:",
+    "badgeBest": "Mejor Opción",
+    "badgeFeatured": "Destacado"
+  },
+  "errors": {
+    "networkError": "Lo sentimos, el sistema está experimentando una interrupción. Por favor, inténtelo de nuevo."
+  },
+  "demoOffers": [
+    {
+      "id": "offer-1",
+      "brand": "VPBank CAKE",
+      "campaign": "Préstamo de consumo online rápido",
+      "tagline": "Ideal — desembolso el mismo día, sin garantía requerida.",
+      "amountRange": "5M – 70M VND",
+      "termRange": "6 – 36 meses",
+      "aprRange": "18% – 35%/año",
+      "processingSpeed": "Mismo día",
+      "commonRequirements": "DNI, ingresos +4M VND/mes, +20 años",
+      "applyUrl": "#",
+      "badgeLabel": "🔥 Popular"
+    },
+    {
+      "id": "offer-2",
+      "brand": "MBBank MCredit",
+      "campaign": "Préstamo sin garantía flexible",
+      "tagline": "Ideal — plazo largo significa cuotas mensuales más bajas.",
+      "amountRange": "3M – 100M VND",
+      "termRange": "12 – 48 meses",
+      "aprRange": "20% – 42%/año",
+      "processingSpeed": "1–2 días",
+      "commonRequirements": "DNI, registro de residencia, ingresos estables",
+      "applyUrl": "#",
+      "badgeLabel": "⭐ Recomendado"
+    }
+  ],
+  "demoResponses": {
+    "default": "Entiendo que estás buscando información sobre préstamos. Aquí tienes algunos paquetes que se adaptan a tus necesidades. ¡Revisa cuidadosamente las condiciones y la TAE antes de decidir!",
+    "compare": "Para comparar tasas eficazmente, enfócate en la TAE (Tasa Anual Equivalente) en lugar de solo la tasa nominal. La TAE incluye todos los cargos y costos. Aquí tienes algunas opciones destacadas:",
+    "greeting": "¡Hola! Soy FINAI – tu asesor inteligente de préstamos 👋\n\nPuedo ayudarte a:\n• Encontrar el paquete de préstamo que se adapte a tus necesidades\n• Comparar tasas de interés entre bancos\n• Explicar las condiciones del préstamo\n• Orientarte en solicitudes de préstamos con o sin garantía\n\n¿Cuánto necesitas pedir prestado y para qué?"
+  },
+  "responseTriggers": {
+    "compare": ["comparar", "tasa", "tae", "compare", "rate", "apr"],
+    "greeting": ["hola", "buenas", "hello", "hi", "hey"]
+  },
+  "dateLocale": "es-ES"
+}

@@ -1,0 +1,109 @@
+{
+  "header": {
+    "tagline": "Loan Advisor",
+    "newChat": "New Chat",
+    "toggleTheme": "Toggle light/dark mode",
+    "toggleLang": "Switch to Spanish"
+  },
+  "input": {
+    "quickLabel": "Quick:",
+    "placeholder": "Ask me anything… (Enter to send)",
+    "exploreLink": "Explore all loan products",
+    "shiftEnterHint": "Shift+Enter for new line",
+    "disclaimerBold": "is not a lending institution.",
+    "disclaimerRest": "Information is for reference only. Rates & terms may change and depend on each lender's approval.",
+    "amountChips": [
+      { "label": "10M VND", "value": "10 million VND" },
+      { "label": "30M VND", "value": "30 million VND" },
+      { "label": "50M VND", "value": "50 million VND" },
+      { "label": "100M VND", "value": "100 million VND" },
+      { "label": "500M VND", "value": "500 million VND" }
+    ],
+    "quickChips": [
+      { "label": "🏦 Bank loan", "value": "Bank loan" },
+      { "label": "📱 Fast online", "value": "Fast online loan disbursement" },
+      { "label": "📆 12 months", "value": "12-month term" },
+      { "label": "📆 36 months", "value": "36-month term" },
+      { "label": "💼 ID only", "value": "ID card only required" }
+    ]
+  },
+  "suggestions": {
+    "title": "Hello! I'm FINAI",
+    "subtitle": "Your smart loan advisor. Tell me what you need!",
+    "items": [
+      {
+        "emoji": "💰",
+        "label": "Consumer Loan 50M VND",
+        "value": "I want a consumer loan of about 50 million VND, repaid over 24 months. What are my best options?"
+      },
+      {
+        "emoji": "🏠",
+        "label": "Home / Real Estate",
+        "value": "I'm looking into a home loan of around 1–2 billion VND. What are the current conditions and rates?"
+      },
+      {
+        "emoji": "🚗",
+        "label": "Car / Vehicle Loan",
+        "value": "I want to finance a car or motorbike. Which loan package fits and what are the rates?"
+      },
+      {
+        "emoji": "📊",
+        "label": "Compare Rates",
+        "value": "Help me compare current bank interest rates and choose the best package."
+      }
+    ]
+  },
+  "offerCard": {
+    "applyButton": "Apply",
+    "labelAmount": "Amount",
+    "labelTerm": "Term",
+    "labelAPR": "APR",
+    "labelSpeed": "Speed",
+    "aprDisclaimerBold": "APR is for reference only;",
+    "aprDisclaimerRest": " final terms depend on each lender's approval.",
+    "commonRequirementsLabel": "Common requirements:",
+    "badgeBest": "Best Match",
+    "badgeFeatured": "Featured"
+  },
+  "errors": {
+    "networkError": "Sorry, the system is experiencing an interruption. Please try again."
+  },
+  "demoOffers": [
+    {
+      "id": "offer-1",
+      "brand": "VPBank CAKE",
+      "campaign": "Fast Online Consumer Loan",
+      "tagline": "Great fit — same-day disbursement, no collateral required.",
+      "amountRange": "5M – 70M VND",
+      "termRange": "6 – 36 months",
+      "aprRange": "18% – 35%/yr",
+      "processingSpeed": "Same day",
+      "commonRequirements": "ID card, income 4M+ VND/month, 20+ years old",
+      "applyUrl": "#",
+      "badgeLabel": "🔥 Popular"
+    },
+    {
+      "id": "offer-2",
+      "brand": "MBBank MCredit",
+      "campaign": "Flexible Unsecured Loan",
+      "tagline": "Great fit — longer term means lower monthly repayments.",
+      "amountRange": "3M – 100M VND",
+      "termRange": "12 – 48 months",
+      "aprRange": "20% – 42%/yr",
+      "processingSpeed": "1–2 days",
+      "commonRequirements": "ID card, residence registration, stable income",
+      "applyUrl": "#",
+      "badgeLabel": "⭐ Recommended"
+    }
+  ],
+  "demoResponses": {
+    "default": "I understand you're looking for loan information. Here are some packages that match your needs. Please review the terms and APR carefully before making a decision!",
+    "compare": "To compare rates effectively, focus on the APR (Annual Percentage Rate) rather than just the nominal rate. APR includes all fees and other costs. Here are some top picks right now:",
+    "greeting": "Hello! I'm FINAI – your smart loan advisor 👋\n\nI can help you:\n• Find a loan package that fits your needs\n• Compare interest rates across banks\n• Explain loan conditions\n• Guide you through secured or unsecured loan applications\n\nHow much do you need to borrow and what is it for?"
+  },
+  "responseTriggers": {
+    "compare": ["compare", "rate", "apr"],
+    "greeting": ["hello", "hi", "hey"]
+  },
+  "dateLocale": "en-US"
+}
