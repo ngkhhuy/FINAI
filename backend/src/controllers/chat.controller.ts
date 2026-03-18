@@ -78,33 +78,71 @@ function getBucketForAmount(amount: number): string {
   return ">$10k";
 }
 
+// ── Helper: Language detection ───────────────────────────────────────────────
+
+function detectLanguage(message: string): "en" | "es" {
+  const spanishPattern = /\b(hola|necesito|quiero|dinero|préstamo|prestamo|urgente|cuánto|cuanto|cómo|puedo|pagar|deuda|carro|casa|ayuda|semana|trabajo|tengo)\b/i;
+  return spanishPattern.test(message) ? "es" : "en";
+}
+
+// ── Helper: Speed score (urgency-aware tiebreaker) ────────────────────────────
+
+function speedScore(offer: Offer, urgency: string): number {
+  if (urgency !== "within_hours" && urgency !== "today") return 0;
+  const label = offer.speed_label.toLowerCase();
+  if (label.includes("same") || label.includes("instant") || label.includes("hour")) return 1.0;
+  if (label.includes("24") || label.includes("overnight") || label.includes("next day")) return 0.5;
+  return 0;
+}
+
 // ── Core Selector Logic ───────────────────────────────────────────────────────
 
-function selectOffers(allOffers: Offer[], purpose: LoanPurpose, bucket: string, weight: number, sid: string): OfferCard[] {
+function selectOffers(allOffers: Offer[], purpose: LoanPurpose, bucket: string, urgency: string, weight: number, sid: string): OfferCard[] {
   const purposeType = purpose as LoanType;
-  
-  // 1. Filter: Đúng loại VÀ Điểm số > 0 (Tức là user đủ tiền vay mức min)
+
+  // 1. Filter: same loan_type AND amountScore > 0; sort by score desc, then amount_max desc (higher limit preferred for large buckets), then speed for urgent requests
   const inGroup = allOffers
     .filter(o => o.loan_type === purposeType && amountScore(o, bucket) > 0)
-    .sort((a, b) => amountScore(b, bucket) - amountScore(a, bucket));
+    .sort((a, b) => {
+      const scoreDiff = amountScore(b, bucket) - amountScore(a, bucket);
+      if (scoreDiff !== 0) return scoreDiff;
+      const maxDiff = b.amount_max - a.amount_max; // prefer offer with higher ceiling
+      if (maxDiff !== 0) return maxDiff;
+      return speedScore(b, urgency) - speedScore(a, urgency);
+    });
 
   if (inGroup.length === 0) return [];
 
   const slots: Offer[] = [];
-  const featured = inGroup.find(o => o.is_featured);
+  const inGroupFeatured = inGroup.find(o => o.is_featured);
   const nonFeatured = inGroup.filter(o => !o.is_featured);
+  // Featured from a DIFFERENT loan_type (spec: "Featured lệch nhóm" → push to Alternative #2)
+  // Require amountScore === 1.0 (midpoint must fall fully within the offer's range)
+  // to avoid showing e.g. a $100–$1,000 payday loan for a $100k request.
+  const crossGroupFeatured = allOffers.find(o => o.is_featured && o.loan_type !== purposeType && amountScore(o, bucket) === 1.0);
 
-  // Weighted Random cho Featured
-  if (featured && Math.random() < weight) {
-    slots.push(featured);
-    slots.push(...nonFeatured.slice(0, 2));
+  if (inGroupFeatured) {
+    // Featured belongs to correct group → apply weighted random
+    if (Math.random() < weight) {
+      slots.push(inGroupFeatured);
+      slots.push(...nonFeatured.slice(0, 2));
+    } else {
+      if (nonFeatured[0]) slots.push(nonFeatured[0]);
+      slots.push(inGroupFeatured);
+      if (nonFeatured[1]) slots.push(nonFeatured[1]);
+    }
   } else {
+    // No in-group featured → Best + Alt #1 from correct group; Alt #2 = cross-group featured
     if (nonFeatured[0]) slots.push(nonFeatured[0]);
-    if (featured) slots.push(featured);
     if (nonFeatured[1]) slots.push(nonFeatured[1]);
+    if (crossGroupFeatured) slots.push(crossGroupFeatured);
+    else if (nonFeatured[2]) slots.push(nonFeatured[2]);
   }
 
-  return slots.slice(0, 3).map((o, i) => buildOfferCard(o, sid, i === 0));
+  const finalSlots = slots.slice(0, 3);
+  const bestOffer = finalSlots[0];
+  finalSlots.sort((a, b) => a.amount_min - b.amount_min);
+  return finalSlots.map(o => buildOfferCard(o, sid, o === bestOffer));
 }
 
 // ── Controller Handler ────────────────────────────────────────────────────────
@@ -112,11 +150,11 @@ function selectOffers(allOffers: Offer[], purpose: LoanPurpose, bucket: string, 
 export async function handleChat(req: Request, res: Response) {
   const { message, sessionId: reqSessionId } = req.body;
   const sessionId = reqSessionId || uuidv4();
-  const lang = message.toLowerCase().includes("hola") ? "es" : "en";
 
   // Load Config & Session
   const [config, allOffers] = await Promise.all([getConfigData(), getOffersData()]);
-  const session = sessionService.get(sessionId) || sessionService.create(lang, { session_id: sessionId });
+  const session = sessionService.get(sessionId) || sessionService.create(detectLanguage(message), { session_id: sessionId });
+  const lang = session.language;
   
   // AI Analysis
   const aiResult = await analyzeMessage(message, session.history);
@@ -125,7 +163,7 @@ export async function handleChat(req: Request, res: Response) {
 
   if (!aiResult.is_out_of_scope && aiResult.purpose !== "UNKNOWN" && aiResult.amount_bucket !== "UNKNOWN") {
     // 1. Thử lọc chính xác theo yêu cầu
-    offers = selectOffers(allOffers, aiResult.purpose, aiResult.amount_bucket, Number(config.featured_default_weight || 0.6), sessionId);
+    offers = selectOffers(allOffers, aiResult.purpose, aiResult.amount_bucket, aiResult.urgency, Number(config.featured_default_weight || 0.6), sessionId);
 
     // 2. Logic Nới lỏng (Relaxation) nếu không có gói khớp 100%
     if (offers.length === 0) {
@@ -139,7 +177,7 @@ export async function handleChat(req: Request, res: Response) {
       if (nearest) {
         const nearestMin = `$${nearest.amount_min.toLocaleString()}`;
         const nearestBucket = getBucketForAmount(nearest.amount_min);
-        offers = selectOffers(allOffers, nearest.loan_type as LoanPurpose, nearestBucket, 0, sessionId);
+        offers = selectOffers(allOffers, nearest.loan_type as LoanPurpose, nearestBucket, "UNKNOWN", 0, sessionId);
         
         finalReply = lang === "es" 
           ? `No tenemos opciones para ${userRange}. Aquí están las más cercanas desde ${nearestMin}:`

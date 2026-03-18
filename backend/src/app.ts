@@ -11,32 +11,9 @@ import trackingRouter from "./routes/tracking";
 const app = express();
 
 // ── Middleware ──────────────────────────────────────────────
-// Support comma-separated list of allowed origins (e.g. localhost + LAN IP)
-const allowedOrigins = env.CORS_ORIGIN.split(",")
-  .map((o) => o.trim())
-  .filter(Boolean);
-
-const normalizeOrigin = (origin: string) => origin.replace(/\/$/, "");
-
-const isDevTunnelOrigin = (origin: string) =>
-  /^https:\/\/[a-z0-9-]+-\d+\.[a-z0-9.-]*devtunnels\.ms$/i.test(origin);
-
-const isAllowedOrigin = (origin: string) => {
-  const normalized = normalizeOrigin(origin);
-  if (allowedOrigins.some((allowed) => normalizeOrigin(allowed) === normalized)) {
-    return true;
-  }
-
-  // In development, allow Microsoft Dev Tunnels dynamic subdomains.
-  return env.NODE_ENV === "development" && isDevTunnelOrigin(normalized);
-};
-
+// Allow all origins
 const corsOptions: cors.CorsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests with no origin (curl, Postman, same-origin)
-    if (!origin || isAllowedOrigin(origin)) return callback(null, true);
-    callback(new Error(`CORS: origin '${origin}' not allowed`));
-  },
+  origin: true,
   credentials: true,
 };
 

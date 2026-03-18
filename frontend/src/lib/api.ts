@@ -67,7 +67,11 @@ export interface ChatApiRequest {
 export async function sendChatMessage(payload: ChatApiRequest): Promise<ChatApiResponse> {
   const response = await fetch(CHAT_MESSAGE_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      // Required for Microsoft Dev Tunnels cross-origin requests
+      "X-Tunnel-Skip-Anti-Csrf-Check": "1",
+    },
     body: JSON.stringify(payload),
   });
 
