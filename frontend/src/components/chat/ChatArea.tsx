@@ -32,7 +32,13 @@ export function ChatArea({ messages, onFeedback, onSuggestionSelect, trackingPar
           <PromptSuggestions onSelect={onSuggestionSelect} />
         ) : (
           messages.map((msg) => (
-            <ChatMessageItem key={msg.id} message={msg} onFeedback={onFeedback} trackingParams={trackingParams} />
+            <ChatMessageItem
+              key={msg.id}
+              message={msg}
+              onFeedback={onFeedback}
+              onSuggestionSelect={onSuggestionSelect}
+              trackingParams={trackingParams}
+            />
           ))
         )}
         <div ref={bottomRef} className="h-1" />

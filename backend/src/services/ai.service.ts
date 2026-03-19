@@ -162,7 +162,7 @@ export async function analyzeMessage(
         responseMimeType: "application/json",
         responseSchema: RESPONSE_SCHEMA,
         temperature: 0.3,
-        maxOutputTokens: 512,
+        maxOutputTokens: 1024,
       },
     });
 

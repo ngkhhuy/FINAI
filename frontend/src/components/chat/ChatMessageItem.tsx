@@ -9,10 +9,11 @@ import { useLanguage } from "@/hooks/use-language";
 interface ChatMessageItemProps {
   message: ChatMessage;
   onFeedback: (id: string, value: "up" | "down") => void;
+  onSuggestionSelect?: (text: string) => void;
   trackingParams?: TrackingParams;
 }
 
-export function ChatMessageItem({ message, onFeedback, trackingParams = {} }: ChatMessageItemProps) {
+export function ChatMessageItem({ message, onFeedback, onSuggestionSelect, trackingParams = {} }: ChatMessageItemProps) {
   const isUser = message.role === "user";
   const { t } = useLanguage();
 
@@ -57,18 +58,32 @@ export function ChatMessageItem({ message, onFeedback, trackingParams = {} }: Ch
               {message.isStreaming && (
                 <span className="inline-block w-0.5 h-3.5 bg-current ml-0.5 cursor-blink align-middle" />
               )}
+              {/* Offer cards — inside the bubble, separated by dividers */}
+              {!isUser && message.offers && message.offers.length > 0 && (
+                <div className="mt-3 pt-1 border-t border-border/50 divide-y divide-border/40">
+                  {message.offers.map((offer) => (
+                    <OfferCard key={offer.id} offer={offer} trackingParams={trackingParams} flat />
+                  ))}
+                </div>
+              )}
+
+              {/* Suggestion chips */}
+              {!isUser && !message.isStreaming && message.suggestions && message.suggestions.length > 0 && (
+                <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-border/50">
+                  {message.suggestions.map((s, i) => (
+                    <button
+                      key={i}
+                      onClick={() => onSuggestionSelect?.(s)}
+                      className="text-left text-sm px-3 py-2 rounded-lg border border-primary/30 bg-background/60 text-primary hover:bg-primary/10 active:scale-[0.98] transition-all leading-snug"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
-
-        {/* Offer cards */}
-        {message.offers && message.offers.length > 0 && (
-          <div className="w-full space-y-2">
-            {message.offers.map((offer) => (
-              <OfferCard key={offer.id} offer={offer} trackingParams={trackingParams} />
-            ))}
-          </div>
-        )}
 
         {/* Feedback buttons (only for AI messages that are done streaming) */}
         {!isUser && !message.isStreaming && (
