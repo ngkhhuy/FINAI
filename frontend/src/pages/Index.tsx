@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { ChatInput } from "@/components/chat/ChatInput";
@@ -52,6 +52,54 @@ export default function Index() {
 
   // Session ID is resolved immediately on mount from localStorage
   const sessionIdRef = useRef<string>(getSessionId());
+
+  // Container ref — locked to window.innerHeight ONCE at mount.
+  // This height never changes, so the page never jumps when the keyboard opens.
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Input bar ref — tracks visual viewport so it slides up with the keyboard.
+  const inputBarRef = useRef<HTMLDivElement>(null);
+  const [bottomPadding, setBottomPadding] = useState(80);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.style.height = `${window.innerHeight}px`;
+    }
+
+    const update = () => {
+      window.scrollTo(0, 0);
+      const vv = window.visualViewport;
+      const bar = inputBarRef.current;
+      if (!bar) return;
+      const barH = bar.offsetHeight || 80;
+      const kH = vv
+        ? Math.max(0, window.innerHeight - vv.height - (vv.offsetTop ?? 0))
+        : 0;
+      setKeyboardHeight(kH);
+      setBottomPadding(barH + kH);
+    };
+
+    // iOS keyboard takes ~300ms to fully appear, fire update at multiple points
+    const updateWithDelay = () => {
+      update();
+      setTimeout(update, 100);
+      setTimeout(update, 300);
+    };
+
+    requestAnimationFrame(update);
+    window.visualViewport?.addEventListener("resize", updateWithDelay);
+    window.visualViewport?.addEventListener("scroll", update);
+    // Fallback: focusin fires when any input is focused (iOS keyboard about to show)
+    document.addEventListener("focusin", updateWithDelay);
+    document.addEventListener("focusout", updateWithDelay);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", updateWithDelay);
+      window.visualViewport?.removeEventListener("scroll", update);
+      document.removeEventListener("focusin", updateWithDelay);
+      document.removeEventListener("focusout", updateWithDelay);
+    };
+  }, []);
 
   // ── Send handler ──────────────────────────────────────────────────────────
 
@@ -151,15 +199,25 @@ export default function Index() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-[100dvh] max-h-[100dvh] overflow-hidden bg-chat-surface">
+    <div ref={containerRef} className="fixed top-0 left-0 right-0 flex flex-col overflow-hidden bg-chat-surface" style={{ position: "fixed" }}>
       <ChatHeader onNewSession={handleNewSession} />
       <ChatArea
         messages={messages}
         onFeedback={handleFeedback}
         onSuggestionSelect={handleSend}
         trackingParams={trackingParams.current}
+        bottomPadding={bottomPadding}
       />
-      <ChatInput onSend={handleSend} disabled={isLoading} />
+      <div
+        ref={inputBarRef}
+        className="absolute left-0 right-0 bottom-0 z-10"
+        style={{
+          transform: `translateY(-${keyboardHeight}px)`,
+          transition: keyboardHeight > 0 ? "transform 0.2s ease-out" : "none",
+        }}
+      >
+        <ChatInput onSend={handleSend} disabled={isLoading} />
+      </div>
     </div>
   );
 }
