@@ -9,6 +9,10 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
 
+  // ── Vertex AI fine-tuned model (optional — uses service account credentials) ─
+  VERTEX_PROJECT_ID: z.string().optional(),
+  VERTEX_ENDPOINT_ID: z.string().optional(),
+
   // ── Google Sheets ────────────────────────────────────────────────────────
   SPREADSHEET_ID: z.string().min(1, "SPREADSHEET_ID is required"),
   GOOGLE_SERVICE_ACCOUNT_EMAIL: z.string().email("Invalid Google service account email"),

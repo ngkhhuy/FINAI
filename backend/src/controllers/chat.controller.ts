@@ -5,7 +5,7 @@ import { getOffersData, getConfigData } from "../services/sheet.service";
 import { sessionService } from "../services/session";
 import { logger } from "../utils/logger";
 import type { Offer, LoanType, ChatHistoryMessage } from "../types";
-import type { LoanPurpose } from "../services/ai.service";
+import type { LoanPurpose, ReadinessSignal } from "../services/ai.service";
 
 // ── Types & Constants ─────────────────────────────────────────────────────────
 
@@ -28,6 +28,11 @@ const BUCKET_MIDPOINT: Record<string, number> = {
   "<$500": 250, "$500-$1k": 750, "$1k-$3k": 2000, "$3k-$10k": 6500, ">$10k": 15000,
 };
 
+// Upper bound of each bucket — used for hard-filter: if even the top of the bucket < offer.amount_min, exclude
+const BUCKET_MAX: Record<string, number> = {
+  "<$500": 499, "$500-$1k": 1000, "$1k-$3k": 3000, "$3k-$10k": 10000, ">$10k": 100000,
+};
+
 const BUCKET_LABEL: Record<string, Record<string, string>> = {
   en: { "<$500": "under $500", "$500-$1k": "$500–$1,000", "$1k-$3k": "$1,000–$3,000", "$3k-$10k": "$3,000–$10,000", ">$10k": "over $10,000" },
   es: { "<$500": "menos de $500", "$500-$1k": "$500–$1,000", "$1k-$3k": "$1,000–$3,000", "$3k-$10k": "$3,000–$10,000", ">$10k": "más de $10,000" }
@@ -37,10 +42,16 @@ const BUCKET_LABEL: Record<string, Record<string, string>> = {
 
 function amountScore(offer: Offer, bucket: string): number {
   const mid = BUCKET_MIDPOINT[bucket];
-  if (mid === undefined) return 0.5;
-  // Hard Filter: Nếu túi tiền user nhỏ hơn mức tối thiểu của gói vay -> 0 điểm (loại)
-  if (mid < offer.amount_min) return 0; 
+  const max = BUCKET_MAX[bucket];
+  if (mid === undefined || max === undefined) return 0.5;
+  // Hard filter: if even the top of the user's bucket is below the offer's minimum, exclude
+  if (max < offer.amount_min) return 0;
+  // Perfect fit: midpoint falls within offer range
   if (mid >= offer.amount_min && mid <= offer.amount_max) return 1.0;
+  // Upper-bound fit: top of bucket overlaps offer range (e.g. user says ~$3k, offer starts at $3k)
+  if (max >= offer.amount_min && max <= offer.amount_max) return 0.9;
+  // Midpoint below offer min but bucket max reaches: partial score
+  if (mid < offer.amount_min && max >= offer.amount_min) return 0.7;
   return Math.max(0, 1 - (mid - offer.amount_max) / offer.amount_max);
 }
 
@@ -161,23 +172,37 @@ export async function handleChat(req: Request, res: Response) {
   let finalReply = aiResult.reply_message;
   let offers: OfferCard[] = [];
 
-  if (!aiResult.is_out_of_scope && aiResult.purpose !== "UNKNOWN" && aiResult.amount_bucket !== "UNKNOWN") {
+  // Merge: carry forward known fields from session if AI returned UNKNOWN this turn
+  const resolvedPurpose = (aiResult.purpose !== "UNKNOWN" ? aiResult.purpose : session.purpose) as LoanPurpose | undefined;
+  const resolvedBucket  = (aiResult.amount_bucket !== "UNKNOWN" ? aiResult.amount_bucket : session.amount_bucket) as string | undefined;
+  const resolvedUrgency = (aiResult.urgency !== "UNKNOWN" ? aiResult.urgency : session.urgency) ?? "UNKNOWN";
+
+  // Map readiness → max offers to show (guide v2: hesitant=1, comparing=2, ready=3)
+  // UNKNOWN = 0: AI vẫn đang thu thập thông tin, chưa show offers
+  const readinessLimit: Record<ReadinessSignal, number> = {
+    hesitant: 1, comparing: 2, ready: 3, UNKNOWN: 0,
+  };
+  const maxOffers = readinessLimit[aiResult.readiness_signal ?? "UNKNOWN"];
+
+  if (!aiResult.is_out_of_scope && resolvedPurpose && resolvedPurpose !== "UNKNOWN" && resolvedBucket && resolvedBucket !== "UNKNOWN" && maxOffers > 0) {
     // 1. Thử lọc chính xác theo yêu cầu
-    offers = selectOffers(allOffers, aiResult.purpose, aiResult.amount_bucket, aiResult.urgency, Number(config.featured_default_weight || 0.6), sessionId);
+    offers = selectOffers(allOffers, resolvedPurpose, resolvedBucket!, resolvedUrgency, Number(config.featured_default_weight || 0.6), sessionId);
+    offers = offers.slice(0, maxOffers);
 
     // 2. Logic Nới lỏng (Relaxation) nếu không có gói khớp 100%
     if (offers.length === 0) {
-      const userRange = BUCKET_LABEL[lang][aiResult.amount_bucket] || aiResult.amount_bucket;
+      const userRange = BUCKET_LABEL[lang][resolvedBucket!] || resolvedBucket;
       
       // Tìm gói gần nhất (bất kể loại vay) nhưng user vẫn phải đủ tiền vay mức min
       const nearest = allOffers
-        .filter(o => o.amount_min > BUCKET_MIDPOINT[aiResult.amount_bucket])
+        .filter(o => o.amount_min > BUCKET_MIDPOINT[resolvedBucket!])
         .sort((a, b) => a.amount_min - b.amount_min)[0];
 
       if (nearest) {
         const nearestMin = `$${nearest.amount_min.toLocaleString()}`;
         const nearestBucket = getBucketForAmount(nearest.amount_min);
         offers = selectOffers(allOffers, nearest.loan_type as LoanPurpose, nearestBucket, "UNKNOWN", 0, sessionId);
+        offers = offers.slice(0, maxOffers);
         
         finalReply = lang === "es" 
           ? `No tenemos opciones para ${userRange}. Aquí están las más cercanas desde ${nearestMin}:`
@@ -186,9 +211,11 @@ export async function handleChat(req: Request, res: Response) {
     }
   }
 
-  // Update History & Response
-  sessionService.update(sessionId, { 
-    history: [...session.history, { role: "user", content: message }, { role: "assistant", content: finalReply }] 
+  // Persist resolved fields into session for next turns
+  sessionService.update(sessionId, {
+    ...(resolvedPurpose && resolvedPurpose !== "UNKNOWN" ? { purpose: resolvedPurpose as import("../types").LoanType } : {}),
+    ...(resolvedBucket && resolvedBucket !== "UNKNOWN" ? { amount_bucket: resolvedBucket as import("../types").AmountBucket } : {}),
+    history: [...session.history, { role: "user", content: message }, { role: "assistant", content: finalReply }],
   });
 
   return res.json({ sessionId, bot_reply: finalReply, offers });

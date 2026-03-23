@@ -18,6 +18,14 @@ const BUCKET_MIDPOINT: Record<AmountBucket, number> = {
   over_10k: 15000,
 };
 
+const BUCKET_MAX: Record<AmountBucket, number> = {
+  under_500: 499,
+  "500_to_1k": 1000,
+  "1k_to_3k": 3000,
+  "3k_to_10k": 10000,
+  over_10k: 100000,
+};
+
 function purposeScore(offer: Offer, purpose: LoanType): number {
   if (offer.loan_type === purpose) return 1.0;
   // Adjacent types get partial credit
@@ -31,8 +39,11 @@ function purposeScore(offer: Offer, purpose: LoanType): number {
 
 function amountScore(offer: Offer, bucket: AmountBucket): number {
   const mid = BUCKET_MIDPOINT[bucket];
+  const max = BUCKET_MAX[bucket];
+  if (max < offer.amount_min) return 0;
   if (mid >= offer.amount_min && mid <= offer.amount_max) return 1.0;
-  if (mid < offer.amount_min) return Math.max(0, 1 - (offer.amount_min - mid) / offer.amount_min);
+  if (max >= offer.amount_min && max <= offer.amount_max) return 0.9;
+  if (mid < offer.amount_min && max >= offer.amount_min) return 0.7;
   return Math.max(0, 1 - (mid - offer.amount_max) / offer.amount_max);
 }
 

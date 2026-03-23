@@ -55,7 +55,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             onKeyDown={handleKeyDown}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            placeholder="Ask me anything... (Enter to send)"
+            placeholder={t.input.placeholder}
             rows={1}
             className="flex-1 resize-none bg-transparent text-base sm:text-sm text-foreground placeholder:text-muted-foreground outline-none leading-relaxed py-0.5 max-h-[140px] scrollbar-thin"
             disabled={disabled}

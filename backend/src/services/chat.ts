@@ -16,6 +16,8 @@ import { routingService } from "./routing";
 import { maskPII } from "../utils/piiMask";
 import { logger } from "../utils/logger";
 
+type ReadinessSignal = "hesitant" | "comparing" | "ready" | "UNKNOWN";
+
 // ── Language detection ──────────────────────────────────────
 const ES_PATTERN =
   /\b(hola|buenos|gracias|quiero|necesito|pr[eé]stamo|dinero|cu[aá]nto|ayuda|por favor|necesita|tengo|pagar|deuda)\b/i;
@@ -117,6 +119,7 @@ export const chatService = {
       purpose: aiResult.purpose,
       urgency: aiResult.urgency,
       amount_bucket: aiResult.amount_bucket,
+      readiness_signal: aiResult.readiness_signal,
       is_out_of_scope: aiResult.is_out_of_scope,
     });
 
@@ -160,6 +163,14 @@ export const chatService = {
     const mergedSession = { ...session, ...patch };
     const nextStep = resolveStep(mergedSession);
     const allCollected = nextStep === "results";
+    const readinessLimit: Record<ReadinessSignal, number> = {
+      hesitant: 1,
+      comparing: 2,
+      ready: 3,
+      // If core fields are complete but model still returns UNKNOWN, keep UX moving with 2 offers.
+      UNKNOWN: 2,
+    };
+    const maxOffers = readinessLimit[(aiResult.readiness_signal ?? "UNKNOWN") as ReadinessSignal];
 
     // ─── Case A: just collected the last piece — show offers ───────────────
     if (allCollected && session.step !== "results") {
@@ -173,7 +184,8 @@ export const chatService = {
         finalSession.purpose!,
         finalSession.urgency!,
         finalSession.amount_bucket!,
-        finalSession
+        finalSession,
+        maxOffers
       );
 
       return {
@@ -196,7 +208,8 @@ export const chatService = {
         finalSession.purpose ?? "PERSONAL",
         finalSession.urgency ?? "not_urgent",
         finalSession.amount_bucket ?? "1k_to_3k",
-        finalSession
+        finalSession,
+        maxOffers
       );
 
       return {
