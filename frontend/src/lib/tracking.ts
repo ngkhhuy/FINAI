@@ -1,40 +1,33 @@
 /**
  * FINAI – Tracking parameter utilities
  *
- * Reads affiliate / ad-network click IDs from the current page URL and
- * appends them to offer apply URLs so the affiliate network correctly
- * attributes the conversion.
- *
- * Supported parameters: gclid (Google Ads), fbclid (Meta Ads), ttclid (TikTok Ads),
- * msclkid (Microsoft Ads), utm_source, utm_medium, utm_campaign, utm_content, utm_term.
+ * Captures ALL query parameters from the landing URL and appends them to
+ * offer apply URLs so every ad network (TikTok, Meta, Google, etc.) can
+ * attribute the conversion correctly — regardless of which custom params
+ * each network injects (e.g. cpid, oid, aff_sub1, campaign_id, creative_id,
+ * placement, gclid, fbclid, ttclid, utm_*, msclkid, …).
  */
 
-const TRACKED_PARAMS = [
-  "gclid",
-  "fbclid",
-  "ttclid",
-  "msclkid",
-  "utm_source",
-  "utm_medium",
-  "utm_campaign",
-  "utm_content",
-  "utm_term",
-] as const;
+// Well-known click-ID keys forwarded to the backend for session-level tracking.
+export const CLICK_ID_PARAMS = ["gclid", "fbclid", "ttclid", "msclkid"] as const;
+export type ClickIdParam = (typeof CLICK_ID_PARAMS)[number];
 
-export type TrackingParams = Partial<Record<(typeof TRACKED_PARAMS)[number], string>>;
+/** All URL params captured from the landing page — keyed by param name. */
+export type TrackingParams = Record<string, string>;
 
 /**
- * Extract tracking parameters from the current window.location.search.
- * Returns only the params that are actually present in the URL.
+ * Capture ALL query parameters from window.location.search at page load.
+ * Every param present in the URL is stored, so custom affiliate params
+ * (cpid, oid, aff_sub1, campaign_id, creative_id, placement, …) are
+ * automatically included alongside standard utm_* and click-ID fields.
  */
 export function getTrackingParams(): TrackingParams {
   const params: TrackingParams = {};
   try {
     const search = new URLSearchParams(window.location.search);
-    for (const key of TRACKED_PARAMS) {
-      const val = search.get(key);
-      if (val) params[key] = val;
-    }
+    search.forEach((value, key) => {
+      if (value) params[key] = value;
+    });
   } catch {
     // Non-browser environment — return empty object
   }

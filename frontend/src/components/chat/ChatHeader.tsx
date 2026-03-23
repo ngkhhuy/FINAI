@@ -1,4 +1,4 @@
-import { Moon, Sun, PlusCircle, Landmark, Globe } from "lucide-react";
+import { Moon, Sun, PlusCircle, Globe } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
@@ -15,12 +15,11 @@ export function ChatHeader({ onNewSession }: ChatHeaderProps) {
     <header className="sticky top-0 z-30 flex items-center justify-between px-4 py-3 border-b border-border bg-card/80 backdrop-blur-md">
       {/* Logo */}
       <div className="flex items-center gap-2">
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg gradient-hero shadow-sm">
-          <Landmark className="w-4 h-4 text-primary-foreground" strokeWidth={2.5} />
-        </div>
-        <span className="font-display font-bold text-lg tracking-tight text-foreground">
-          FIN<span className="text-primary">AI</span>
-        </span>
+        <img
+          src="/logo.png"
+          alt="LendoraAI"
+          className={`h-36 w-auto max-w-[360px] object-contain -my-[4.5rem] transition-[filter] duration-200 ${theme === "light" ? "invert" : ""}`}
+        />
         <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-subtle text-primary border border-primary/20">
           {t.header.tagline}
         </span>

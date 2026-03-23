@@ -97,7 +97,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
       {!hideFooter && (
         <div className="border-t border-border bg-muted/60 px-3 py-2">
           <p className="text-[10px] text-muted-foreground text-center leading-relaxed max-w-2xl mx-auto">
-            ⚠️ FINAI <strong>{t.input.disclaimerBold}</strong> {t.input.disclaimerRest}
+            ⚠️ LendoraAI <strong>{t.input.disclaimerBold}</strong> {t.input.disclaimerRest}
           </p>
         </div>
       )}

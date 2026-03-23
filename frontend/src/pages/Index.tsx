@@ -5,7 +5,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { useLanguage } from "@/hooks/use-language";
 import type { ChatMessage, LoanOffer } from "@/types/chat";
 import { getSessionId, clearSession } from "@/lib/session";
-import { getTrackingParams } from "@/lib/tracking";
+import { getTrackingParams, appendTrackingParams } from "@/lib/tracking";
 import { sendChatMessage } from "@/lib/api";
 import type { ApiOffer } from "@/lib/api";
 
@@ -143,7 +143,12 @@ export default function Index() {
       }
 
       // 4. Map API offers → UI offers
-      const offers: LoanOffer[] = (result.offers ?? []).map((o) => mapOffer(o, t));
+      // Append any remaining tracking params (msclkid, utm_campaign, utm_content, utm_term, etc.)
+      // that the backend doesn't store. gclid/fbclid/ttclid are already in the URL from the backend.
+      const tracking = trackingParams.current;
+      const offers: LoanOffer[] = (result.offers ?? []).map((o) =>
+        mapOffer({ ...o, apply_url: appendTrackingParams(o.apply_url, tracking) }, t)
+      );
 
       // 5. Replace placeholder with real reply + offers + suggestions
       setMessages((prev) =>
