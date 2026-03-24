@@ -89,14 +89,14 @@ function getBucketForAmount(amount: number): string {
   return ">$10k";
 }
 
-// ── Helper: Language detection ───────────────────────────────────────────────
+//Helper: Language detection
 
 function detectLanguage(message: string): "en" | "es" {
   const spanishPattern = /\b(hola|necesito|quiero|dinero|préstamo|prestamo|urgente|cuánto|cuanto|cómo|puedo|pagar|deuda|carro|casa|ayuda|semana|trabajo|tengo)\b/i;
   return spanishPattern.test(message) ? "es" : "en";
 }
 
-// ── Helper: Speed score (urgency-aware tiebreaker) ────────────────────────────
+//Helper: Speed score (urgency-aware tiebreaker)
 
 function speedScore(offer: Offer, urgency: string): number {
   if (urgency !== "within_hours" && urgency !== "today") return 0;
@@ -106,18 +106,17 @@ function speedScore(offer: Offer, urgency: string): number {
   return 0;
 }
 
-// ── Core Selector Logic ───────────────────────────────────────────────────────
+//Core Selector Logic
 
 function selectOffers(allOffers: Offer[], purpose: LoanPurpose, bucket: string, urgency: string, weight: number, sid: string): OfferCard[] {
   const purposeType = purpose as LoanType;
 
-  // 1. Filter: same loan_type AND amountScore > 0; sort by score desc, then amount_max desc (higher limit preferred for large buckets), then speed for urgent requests
   const inGroup = allOffers
     .filter(o => o.loan_type === purposeType && amountScore(o, bucket) > 0)
     .sort((a, b) => {
       const scoreDiff = amountScore(b, bucket) - amountScore(a, bucket);
       if (scoreDiff !== 0) return scoreDiff;
-      const maxDiff = b.amount_max - a.amount_max; // prefer offer with higher ceiling
+      const maxDiff = b.amount_max - a.amount_max;
       if (maxDiff !== 0) return maxDiff;
       return speedScore(b, urgency) - speedScore(a, urgency);
     });
@@ -128,13 +127,10 @@ function selectOffers(allOffers: Offer[], purpose: LoanPurpose, bucket: string, 
   const inGroupFeatured = inGroup.find(o => o.is_featured);
   const nonFeatured = inGroup.filter(o => !o.is_featured);
   // Featured from a DIFFERENT loan_type (spec: "Featured lệch nhóm" → push to Alternative #2)
-  // Require amountScore === 1.0 (midpoint must fall fully within the offer's range)
-  // to avoid showing e.g. a $100–$1,000 payday loan for a $100k request.
   const crossGroupFeatured = allOffers.find(o => o.is_featured && o.loan_type !== purposeType && amountScore(o, bucket) === 1.0);
 
   if (inGroupFeatured) {
-    // Featured belongs to correct group → apply weighted random
-    if (Math.random() < weight) {
+      if (Math.random() < weight) {
       slots.push(inGroupFeatured);
       slots.push(...nonFeatured.slice(0, 2));
     } else {
@@ -162,17 +158,14 @@ export async function handleChat(req: Request, res: Response) {
   const { message, sessionId: reqSessionId } = req.body;
   const sessionId = reqSessionId || uuidv4();
 
-  // Load Config & Session
   const [config, allOffers] = await Promise.all([getConfigData(), getOffersData()]);
   const session = sessionService.get(sessionId) || sessionService.create(detectLanguage(message), { session_id: sessionId });
   const lang = session.language;
   
-  // AI Analysis
-  const aiResult = await analyzeMessage(message, session.history);
+   const aiResult = await analyzeMessage(message, session.history);
   let finalReply = aiResult.reply_message;
   let offers: OfferCard[] = [];
 
-  // Merge: carry forward known fields from session if AI returned UNKNOWN this turn
   const resolvedPurpose = (aiResult.purpose !== "UNKNOWN" ? aiResult.purpose : session.purpose) as LoanPurpose | undefined;
   const resolvedBucket  = (aiResult.amount_bucket !== "UNKNOWN" ? aiResult.amount_bucket : session.amount_bucket) as string | undefined;
   const resolvedUrgency = (aiResult.urgency !== "UNKNOWN" ? aiResult.urgency : session.urgency) ?? "UNKNOWN";
@@ -211,7 +204,6 @@ export async function handleChat(req: Request, res: Response) {
     }
   }
 
-  // Persist resolved fields into session for next turns
   sessionService.update(sessionId, {
     ...(resolvedPurpose && resolvedPurpose !== "UNKNOWN" ? { purpose: resolvedPurpose as import("../types").LoanType } : {}),
     ...(resolvedBucket && resolvedBucket !== "UNKNOWN" ? { amount_bucket: resolvedBucket as import("../types").AmountBucket } : {}),

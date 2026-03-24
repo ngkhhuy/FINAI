@@ -46,5 +46,6 @@ export function maskPII(text: string): string {
 }
 
 export function containsPII(text: string): boolean {
-  return PII_PATTERNS.some((p) => p.regex.test(text));
+  // Create fresh regex instances to avoid shared lastIndex state on global patterns
+  return PII_PATTERNS.some((p) => new RegExp(p.regex.source, p.regex.flags).test(text));
 }

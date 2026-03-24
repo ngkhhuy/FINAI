@@ -1,9 +1,24 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { sheetsService } from "../services/sheets";
 import { logger } from "../utils/logger";
+import { env } from "../config/env";
 
 const router = Router();
+
+// ── Simple API-key guard ────────────────────────────────────
+// Requires header:  Authorization: Bearer <ADMIN_API_KEY>
+function requireAdminKey(req: Request, res: Response, next: NextFunction): void {
+  const header = req.headers["authorization"] ?? "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  if (!env.ADMIN_API_KEY || token !== env.ADMIN_API_KEY) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  next();
+}
+
+router.use(requireAdminKey);
 
 const updateOfferSchema = z.object({
   is_active: z.boolean().optional(),
@@ -11,7 +26,7 @@ const updateOfferSchema = z.object({
   featured_weight: z.number().min(0).max(1).optional(),
 });
 
-// GET /api/admin/offers – all offers (including inactive)
+// GET /api/admin/offers – all offers
 router.get("/offers", async (_req: Request, res: Response) => {
   try {
     const offers = await sheetsService.getAllOffers();
@@ -22,7 +37,7 @@ router.get("/offers", async (_req: Request, res: Response) => {
   }
 });
 
-// PATCH /api/admin/offers/:offerId – update offer flags
+// PATCH /api/admin/offers/:offerId
 router.patch("/offers/:offerId", async (req: Request, res: Response) => {
   const { offerId } = req.params;
   const parsed = updateOfferSchema.safeParse(req.body);

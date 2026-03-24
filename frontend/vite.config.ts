@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
   const proxyTarget = env.VITE_PROXY_TARGET || "http://127.0.0.1:3001";
 
   return {
+    plugins: [react()],
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
