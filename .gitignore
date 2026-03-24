@@ -52,3 +52,8 @@ temp/
 !.ebextensions/
 !Procfile
 !.env.example
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
