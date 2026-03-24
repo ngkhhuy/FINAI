@@ -77,29 +77,31 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         </div>
 
         {/* Explore link + disclaimer hint — hidden when keyboard is open on mobile */}
-        {!hideFooter && (
+        {/* {!hideFooter && (
           <div className="flex items-center justify-between mt-2">
-            <a
+            {/* Link to explore features */}
+            {/* <a
               href="#"
               className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
             >
               {t.input.exploreLink}
               <ArrowRight className="w-3 h-3" />
-            </a>
-            <span className="text-xs text-muted-foreground hidden sm:inline">
+            </a> */}
+            {/* Keyboard shortcut hint - only visible on desktop */}
+            {/* <span className="text-xs text-muted-foreground hidden sm:inline">
               {t.input.shiftEnterHint}
-            </span>
-          </div>
-        )}
+            </span> */}
+          {/* </div>
+        )} */}
       </div>
 
-      {/* Sticky disclaimer footer — hidden when keyboard is open on mobile */}
+     {/* Sticky disclaimer footer — hidden when keyboard is open on mobile */}
       {!hideFooter && (
         <div className="border-t border-border bg-muted/60 px-3 py-2">
           <p className="text-[10px] text-muted-foreground text-center leading-relaxed max-w-2xl mx-auto">
             ⚠️ LendoraAI <strong>{t.input.disclaimerBold}</strong> {t.input.disclaimerRest}
           </p>
-        </div>
+        </div>  
       )}
     </div>
   );
