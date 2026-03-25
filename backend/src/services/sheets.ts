@@ -11,10 +11,26 @@ let offersCache: Offer[] | null = null;
 let offersCacheAt = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+function getPrivateKey(): string {
+  // Preferred: base64-encoded key (no newline issues with EB Console)
+  if (env.GOOGLE_PRIVATE_KEY_BASE64) {
+    const key = Buffer.from(env.GOOGLE_PRIVATE_KEY_BASE64, "base64").toString("utf-8");
+    logger.info("[sheets] Using GOOGLE_PRIVATE_KEY_BASE64");
+    return key;
+  }
+  // Fallback: plain key with \n escape sequences
+  const raw = env.GOOGLE_PRIVATE_KEY ?? "";
+  if (raw.includes("\n")) return raw;
+  if (raw.includes("\\n")) return raw.replace(/\\n/g, "\n");
+  logger.error("[sheets] No valid GOOGLE_PRIVATE_KEY or GOOGLE_PRIVATE_KEY_BASE64 found");
+  return raw;
+}
+
 function getAuthClient() {
+  const key = getPrivateKey();
   return new google.auth.JWT({
     email: env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    key: env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+    key,
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
 }
@@ -57,20 +73,29 @@ export const sheetsService = {
     });
 
     const rows = response.data.values ?? [];
-    if (rows.length < 2) return [];
+    if (rows.length < 2) {
+      logger.warn("[sheets] Spreadsheet returned fewer than 2 rows — check OFFERS tab has data.");
+      return [];
+    }
 
     const [headers, ...dataRows] = rows as string[][];
     const offers = dataRows.map((row) => rowToOffer(headers, row));
 
     offersCache = offers;
     offersCacheAt = Date.now();
-    logger.info(`Sheets: loaded ${offers.length} offers`);
+    logger.info(`[sheets] loaded ${offers.length} offers from spreadsheet`);
     return offers;
   },
 
   async getActiveOffers(): Promise<Offer[]> {
-    const all = await this.getAllOffers();
-    return all.filter((o) => o.is_active);
+    try {
+      const all = await this.getAllOffers();
+      return all.filter((o) => o.is_active);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error(`[sheets] getActiveOffers failed: ${msg}`);
+      throw err;
+    }
   },
 
   async updateOffer(offerId: string, patch: UpdateOfferBody): Promise<void> {

@@ -1,0 +1,12 @@
+# Exclude dev dependencies and source files not needed on server
+# NOTE: backend/node_modules/ is intentionally NOT excluded (pre-built deploy)
+.git/
+.gitignore
+backend/src/
+frontend/
+scripts/
+*.ps1
+finai-deploy.zip
+.elasticbeanstalk/
+.env.local
+.env.development

@@ -11,7 +11,8 @@ const envSchema = z.object({
   //Google Sheets credentials 
   SPREADSHEET_ID: z.string().min(1, "SPREADSHEET_ID is required"),
   GOOGLE_SERVICE_ACCOUNT_EMAIL: z.string().email("Invalid Google service account email"),
-  GOOGLE_PRIVATE_KEY: z.string().min(1, "GOOGLE_PRIVATE_KEY is required"),
+  GOOGLE_PRIVATE_KEY: z.string().optional(),
+  GOOGLE_PRIVATE_KEY_BASE64: z.string().optional(),
 
   CORS_ORIGIN: z.string().default("http://localhost:8080"),
   SESSION_TTL_DAYS: z.coerce.number().default(7),
@@ -30,6 +31,11 @@ if (!parsed.success) {
 
 if (!parsed.data.OPENAI_API_KEY && !parsed.data.GEMINI_API_KEY) {
   console.error("[config] ❌ Provide at least one AI key: OPENAI_API_KEY or GEMINI_API_KEY");
+  process.exit(1);
+}
+
+if (!parsed.data.GOOGLE_PRIVATE_KEY && !parsed.data.GOOGLE_PRIVATE_KEY_BASE64) {
+  console.error("[config] ❌ Provide GOOGLE_PRIVATE_KEY_BASE64 (recommended) or GOOGLE_PRIVATE_KEY");
   process.exit(1);
 }
 

@@ -24,8 +24,9 @@ router.post("/message", async (req: Request, res: Response) => {
     const response = await chatService.handleMessage(parsed.data);
     return res.json(response);
   } catch (err) {
-    logger.error("Chat handler error", { err });
-    return res.status(500).json({ error: "Internal server error" });
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error("Chat handler error", { message, stack: err instanceof Error ? err.stack : undefined });
+    return res.status(500).json({ error: "Internal server error", debug_message: message });
   }
 });
 
