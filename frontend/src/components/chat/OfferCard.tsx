@@ -48,7 +48,7 @@ export function OfferCard({ offer, trackingParams = {}, flat = false }: OfferCar
 
       {/* Reason */}
       <div className="flex items-start gap-1.5 text-sm">
-        <span className="text-muted-foreground shrink-0">• Phù hợp vì:</span>
+        <span className="text-muted-foreground shrink-0">• Suitable because:</span>
         <span className="text-foreground/85 leading-snug">{offer.tagline}</span>
       </div>
     </div>
