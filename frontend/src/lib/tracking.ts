@@ -47,7 +47,16 @@ export function appendTrackingParams(url: string, trackingParams: TrackingParams
   try {
     const parsed = new URL(url);
     for (const [key, value] of Object.entries(trackingParams)) {
-      if (value && !parsed.searchParams.has(key)) {
+      if (!value) continue;
+      const existing = parsed.searchParams.get(key);
+      // Overwrite if param is absent OR contains an unfilled macro placeholder
+      // (__CAMPAIGN_ID__ style or {clickid} style)
+      const isPlaceholder =
+        existing !== null &&
+        (/^__.*__$/.test(existing) || /^\{.*\}$/.test(existing));
+      // utm_* params from the landing URL always win over backend-set defaults
+      const isUtm = key.startsWith("utm_");
+      if (!parsed.searchParams.has(key) || isPlaceholder || isUtm) {
         parsed.searchParams.set(key, value);
       }
     }
