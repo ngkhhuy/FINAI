@@ -146,9 +146,12 @@ export default function Index() {
       // Append any remaining tracking params (msclkid, utm_campaign, utm_content, utm_term, etc.)
       // that the backend doesn't store. gclid/fbclid/ttclid are already in the URL from the backend.
       const tracking = trackingParams.current;
-      const offers: LoanOffer[] = (result.offers ?? []).map((o) =>
-        mapOffer({ ...o, apply_url: appendTrackingParams(o.apply_url, tracking) }, t)
-      );
+      const offers: LoanOffer[] = (result.offers ?? []).map((o) => {
+        // Build tracking URL: /api/tracking/click?offer_id=&session_id=&url=<destination>
+        const destination = appendTrackingParams(o.apply_url, tracking);
+        const trackingUrl = `/api/tracking/click?offer_id=${encodeURIComponent(o.offer_id)}&session_id=${encodeURIComponent(sessionIdRef.current)}&url=${encodeURIComponent(destination)}`;
+        return mapOffer({ ...o, apply_url: trackingUrl }, t);
+      });
 
       // 5. Replace placeholder with real reply + offers + suggestions
       setMessages((prev) =>

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { analyzeMessage } from "../services/ai.service";
-import { getOffersData, getConfigData } from "../services/sheet.service";
+import { getOffersData, getConfigData, logConversation } from "../services/sheet.service";
 import { sessionService } from "../services/session";
 import { logger } from "../utils/logger";
 import type { Offer, LoanType, ChatHistoryMessage } from "../types";
@@ -208,6 +208,18 @@ export async function handleChat(req: Request, res: Response) {
     ...(resolvedPurpose && resolvedPurpose !== "UNKNOWN" ? { purpose: resolvedPurpose as import("../types").LoanType } : {}),
     ...(resolvedBucket && resolvedBucket !== "UNKNOWN" ? { amount_bucket: resolvedBucket as import("../types").AmountBucket } : {}),
     history: [...session.history, { role: "user", content: message }, { role: "assistant", content: finalReply }],
+  });
+
+  // Fire-and-forget: log this turn to Google Sheets CONVERSATIONS tab
+  logConversation({
+    session_id:    sessionId,
+    language:      lang,
+    turn_index:    Math.floor(session.history.length / 2),
+    user_message:  message,
+    bot_reply:     finalReply,
+    purpose:       resolvedPurpose ?? session.purpose,
+    amount_bucket: resolvedBucket ?? session.amount_bucket,
+    offers_shown:  offers.map((o: OfferCard) => o.offer_id).join(","),
   });
 
   return res.json({ sessionId, bot_reply: finalReply, offers });

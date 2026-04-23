@@ -54,4 +54,18 @@ export const sessionService = {
     if (session.ttclid) url.searchParams.set("ttclid", session.ttclid);
     return url.toString();
   },
+
+  listAll(): SessionData[] {
+    const now = Date.now();
+    const ttlMs = env.SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
+    const result: SessionData[] = [];
+    for (const [id, session] of sessions) {
+      if (now - session.created_at > ttlMs) {
+        sessions.delete(id);
+        continue;
+      }
+      result.push(session);
+    }
+    return result.sort((a, b) => b.updated_at - a.updated_at);
+  },
 };

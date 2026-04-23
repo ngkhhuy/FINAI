@@ -56,6 +56,9 @@ export type ConversationStep =
   | "q1_purpose"
   | "q2_urgency"
   | "q3_amount"
+  | "q4_state"
+  | "q5_credit"
+  | "q6_income"
   | "results"
   | "fallback";
 
@@ -66,6 +69,9 @@ export interface SessionData {
   purpose?: LoanType;
   urgency?: UrgencyLevel;
   amount_bucket?: AmountBucket;
+  credit_band?: string;
+  income_source?: string;
+  state?: string;
   history: ChatHistoryMessage[];
   created_at: number;
   updated_at: number;

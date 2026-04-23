@@ -6,6 +6,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 $ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $false
 $root = Split-Path $PSScriptRoot -Parent
 
 Write-Host "`n[1/5] Building backend..." -ForegroundColor Cyan
@@ -19,7 +20,7 @@ Write-Host "    Backend built OK" -ForegroundColor Green
 
 Write-Host "`n[1b] Pruning to production dependencies only..." -ForegroundColor Cyan
 # Remove devDeps so only production node_modules go into ZIP
-npm prune --omit=dev
+npm prune --omit=dev 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) { Write-Error "npm prune failed"; exit 1 }
 Write-Host "    Production deps ready OK" -ForegroundColor Green
 

@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { sheetsService } from "../services/sheets";
+import { sessionService } from "../services/session";
 import { logger } from "../utils/logger";
 import { env } from "../config/env";
 
@@ -63,6 +64,37 @@ router.get("/config", async (_req: Request, res: Response) => {
     logger.error("Admin: fetch config failed", { err });
     return res.status(500).json({ error: "Failed to fetch config" });
   }
+});
+
+// GET /api/admin/sessions – list all active in-memory sessions (metadata only)
+router.get("/sessions", (_req: Request, res: Response) => {
+  const all = sessionService.listAll();
+  const sanitized = all.map((s) => ({
+    session_id:    s.session_id,
+    language:      s.language,
+    purpose:       s.purpose,
+    amount_bucket: s.amount_bucket,
+    turn_count:    Math.floor(s.history.length / 2),
+    created_at:    new Date(s.created_at).toISOString(),
+    updated_at:    new Date(s.updated_at).toISOString(),
+  }));
+  return res.json({ count: sanitized.length, sessions: sanitized });
+});
+
+// GET /api/admin/sessions/:sessionId – full conversation history for one session
+router.get("/sessions/:sessionId", (req: Request, res: Response) => {
+  const { sessionId } = req.params;
+  const session = sessionService.get(sessionId);
+  if (!session) return res.status(404).json({ error: "Session not found or expired" });
+  return res.json({
+    session_id:    session.session_id,
+    language:      session.language,
+    purpose:       session.purpose,
+    amount_bucket: session.amount_bucket,
+    created_at:    new Date(session.created_at).toISOString(),
+    updated_at:    new Date(session.updated_at).toISOString(),
+    history:       session.history,
+  });
 });
 
 export default router;

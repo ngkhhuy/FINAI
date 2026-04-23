@@ -28,8 +28,16 @@ import type { Offer } from "../types";
 
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID ?? "";
 const SERVICE_ACCOUNT_EMAIL = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ?? "";
-// PEM key may be stored with literal \n — convert to real newlines
-const PRIVATE_KEY = (process.env.GOOGLE_PRIVATE_KEY ?? "").replace(/\\n/g, "\n");
+
+// Support both base64-encoded key (EB-safe) and plain PEM key
+function resolvePrivateKey(): string {
+  if (process.env.GOOGLE_PRIVATE_KEY_BASE64) {
+    return Buffer.from(process.env.GOOGLE_PRIVATE_KEY_BASE64, "base64").toString("utf-8");
+  }
+  const raw = process.env.GOOGLE_PRIVATE_KEY ?? "";
+  return raw.replace(/\\n/g, "\n");
+}
+const PRIVATE_KEY = resolvePrivateKey();
 const FEATURED_DEFAULT_WEIGHT = parseFloat(process.env.FEATURED_DEFAULT_WEIGHT ?? "0.6");
 
 // ── Sheet tab names ───────────────────────────────────────────────────────────
@@ -143,11 +151,23 @@ function rowToOffer(row: GoogleSpreadsheetRow): Offer {
 
   const featuredWeight = num("featured_weight");
 
+  // offer_id: prefer explicit column, fallback to "oid" param in apply_url
+  const explicitId = str("offer_id");
+  const applyUrlRaw = str("apply_url");
+  let derivedOfferId = explicitId;
+  if (!derivedOfferId) {
+    try {
+      derivedOfferId = new URL(applyUrlRaw).searchParams.get("oid") ?? "";
+    } catch {
+      derivedOfferId = "";
+    }
+  }
+
   return {
-    offer_id:         str("offer_id"),
+    offer_id:         derivedOfferId,
     brand_name:       str("brand_name"),
     loan_type:        str("loan_type") as Offer["loan_type"],
-    apply_url:        str("apply_url"),
+    apply_url:        applyUrlRaw,
     amount_min:       num("amount_min"),
     amount_max:       num("amount_max"),
     term_min:         num("term_min"),
@@ -245,4 +265,127 @@ export function invalidateCache(): void {
   offersCache = null;
   configCache = null;
   logger.info("[sheet.service] Cache invalidated");
+}
+
+// ── CONVERSATIONS tab ─────────────────────────────────────────────────────────
+
+import { google } from "googleapis";
+
+const CONVERSATIONS_TAB = "CONVERSATIONS";
+
+export interface ConversationLogEntry {
+  session_id: string;
+  language: string;
+  turn_index: number;
+  user_message: string;
+  bot_reply: string;
+  purpose?: string;
+  amount_bucket?: string;
+  urgency?: string;
+  state?: string;
+  credit_band?: string;
+  income_source?: string;
+  offers_shown?: string;
+}
+
+/**
+ * Append one conversation turn to the CONVERSATIONS tab using googleapis v4.
+ * Uses values.append — works regardless of whether headers exist.
+ * Fire-and-forget safe: errors are logged but never rethrown.
+ */
+export async function logConversation(entry: ConversationLogEntry): Promise<void> {
+  try {
+    const privateKey = (() => {
+      if (process.env.GOOGLE_PRIVATE_KEY_BASE64) {
+        return Buffer.from(process.env.GOOGLE_PRIVATE_KEY_BASE64, "base64").toString("utf-8");
+      }
+      const raw = process.env.GOOGLE_PRIVATE_KEY ?? "";
+      return raw.includes("\\n") ? raw.replace(/\\n/g, "\n") : raw;
+    })();
+
+    const auth = new google.auth.JWT({
+      email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      key: privateKey,
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+
+    const sheets = google.sheets({ version: "v4", auth });
+    const row = [
+      entry.session_id,
+      new Date().toISOString(),
+      entry.language,
+      entry.turn_index,
+      entry.user_message,
+      entry.bot_reply,
+      entry.purpose ?? "",
+      entry.amount_bucket ?? "",
+      entry.urgency ?? "",
+      entry.state ?? "",
+      entry.credit_band ?? "",
+      entry.income_source ?? "",
+      entry.offers_shown ?? "",
+    ];
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.SPREADSHEET_ID,
+      range: `${CONVERSATIONS_TAB}!A1`,
+      valueInputOption: "RAW",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: { values: [row] },
+    });
+
+    logger.info("[sheet.service] logConversation: row appended");
+  } catch (err) {
+    logger.error("[sheet.service] logConversation() error:", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+/**
+ * Log an offer click event as a new row in the CONVERSATIONS tab.
+ * Only session_id, timestamp, and click_offer_id are filled; other columns are blank.
+ */
+export async function logClick(entry: {
+  session_id: string;
+  offer_id: string;
+}): Promise<void> {
+  try {
+    const privateKey = (() => {
+      if (process.env.GOOGLE_PRIVATE_KEY_BASE64) {
+        return Buffer.from(process.env.GOOGLE_PRIVATE_KEY_BASE64, "base64").toString("utf-8");
+      }
+      const raw = process.env.GOOGLE_PRIVATE_KEY ?? "";
+      return raw.includes("\\n") ? raw.replace(/\\n/g, "\n") : raw;
+    })();
+
+    const auth = new google.auth.JWT({
+      email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      key: privateKey,
+      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+    });
+
+    const sheets = google.sheets({ version: "v4", auth });
+    // Row: session_id | timestamp | (blank x11) | click_offer_id
+    const row = [
+      entry.session_id,
+      new Date().toISOString(),
+      "", "", "", "", "", "", "", "", "", "", "", // columns C–M blank (11 cols)
+      entry.offer_id, // column N: click_offer_id
+    ];
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.SPREADSHEET_ID,
+      range: `${CONVERSATIONS_TAB}!A1`,
+      valueInputOption: "RAW",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: { values: [row] },
+    });
+
+    logger.info("[sheet.service] logClick: row appended", { offer_id: entry.offer_id });
+  } catch (err) {
+    logger.error("[sheet.service] logClick() error:", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
 }

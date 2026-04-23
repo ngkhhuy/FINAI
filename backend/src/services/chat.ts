@@ -15,6 +15,7 @@ import { sheetsService } from "./sheets";
 import { routingService } from "./routing";
 import { maskPII } from "../utils/piiMask";
 import { logger } from "../utils/logger";
+import { logConversation } from "./sheet.service";
 
 type ReadinessSignal = "hesitant" | "comparing" | "ready" | "UNKNOWN";
 
@@ -56,10 +57,13 @@ function mapAmountBucket(raw: string): AmountBucket {
 // ── Step resolver ───────────────────────────────────────────
 // Determines the current step purely from what data has been collected,
 // replacing the old hardcoded state-machine transitions.
-function resolveStep(session: Pick<SessionData, "purpose" | "urgency" | "amount_bucket">): ConversationStep {
+function resolveStep(session: Pick<SessionData, "purpose" | "urgency" | "amount_bucket" | "state" | "credit_band" | "income_source">): ConversationStep {
   if (!session.purpose) return "q1_purpose";
   if (!session.urgency) return "q2_urgency";
   if (!session.amount_bucket) return "q3_amount";
+  if (!session.state) return "q4_state";
+  if (!session.credit_band) return "q5_credit";
+  if (!session.income_source) return "q6_income";
   return "results";
 }
 
@@ -111,7 +115,7 @@ export const chatService = {
     }
 
     // ── 3. Single AI call with full conversation history ──────────────────
-    const aiResult = await analyzeMessage(safeMessage, session.history);
+    const aiResult = await analyzeMessage(safeMessage, session.history, session.language ?? detectLanguage(safeMessage));
 
     logger.debug("AI result", {
       session_id: session.session_id,
@@ -145,6 +149,15 @@ export const chatService = {
     if (aiResult.amount_bucket !== "UNKNOWN") {
       patch.amount_bucket = mapAmountBucket(aiResult.amount_bucket);
     }
+    if (aiResult.credit_band && aiResult.credit_band !== "UNKNOWN") {
+      patch.credit_band = aiResult.credit_band;
+    }
+    if (aiResult.income_source && aiResult.income_source !== "UNKNOWN") {
+      patch.income_source = aiResult.income_source;
+    }
+    if (aiResult.state && aiResult.state !== "UNKNOWN") {
+      patch.state = aiResult.state;
+    }
 
     // Update language if detected on first message
     if (session.step === "greeting") {
@@ -172,6 +185,24 @@ export const chatService = {
     };
     const maxOffers = readinessLimit[(aiResult.readiness_signal ?? "UNKNOWN") as ReadinessSignal];
 
+    // ─── Helper: fire-and-forget conversation log ─────────────────────────
+    const fireLog = (replyMsg: string, offerIds: string) => {
+      logConversation({
+        session_id:    session.session_id,
+        language:      session.language ?? "en",
+        turn_index:    Math.floor(session.history.length / 2),
+        user_message:  safeMessage,
+        bot_reply:     replyMsg,
+        purpose:       patch.purpose ?? session.purpose,
+        amount_bucket: patch.amount_bucket ?? session.amount_bucket,
+        urgency:       patch.urgency ?? session.urgency,
+        state:         patch.state ?? session.state,
+        credit_band:   patch.credit_band ?? session.credit_band,
+        income_source: patch.income_source ?? session.income_source,
+        offers_shown:  offerIds,
+      });
+    };
+
     // ─── Case A: just collected the last piece — show offers ───────────────
     if (allCollected && session.step !== "results") {
       patch.step = "results";
@@ -188,6 +219,7 @@ export const chatService = {
         maxOffers
       );
 
+      fireLog(aiResult.reply_message, offers.map(o => o.offer_id).join(","));
       return {
         session_id: session.session_id,
         message: aiResult.reply_message,
@@ -212,6 +244,7 @@ export const chatService = {
         maxOffers
       );
 
+      fireLog(aiResult.reply_message, offers.map(o => o.offer_id).join(","));
       return {
         session_id: session.session_id,
         message: aiResult.reply_message,
@@ -225,6 +258,7 @@ export const chatService = {
     patch.step = nextStep;
     sessionService.update(session.session_id, patch);
 
+    fireLog(aiResult.reply_message, "");
     return {
       session_id: session.session_id,
       message: aiResult.reply_message,

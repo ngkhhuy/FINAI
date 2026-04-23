@@ -37,8 +37,22 @@ function getAuthClient() {
 
 function rowToOffer(headers: string[], row: string[]): Offer {
   const cell = (col: string) => row[headers.indexOf(col)] ?? "";
+
+  // offer_id: prefer explicit column, fallback to "oid" param in apply_url, then "cpid"
+  const explicitId = cell("offer_id");
+  const applyUrlRaw = cell("apply_url");
+  let derivedOfferId = explicitId;
+  if (!derivedOfferId) {
+    try {
+      const u = new URL(applyUrlRaw);
+      derivedOfferId = u.searchParams.get("oid") ?? u.searchParams.get("cpid") ?? "";
+    } catch {
+      derivedOfferId = "";
+    }
+  }
+
   return {
-    offer_id: cell("offer_id"),
+    offer_id: derivedOfferId,
     brand_name: cell("brand_name"),
     loan_type: cell("loan_type") as Offer["loan_type"],
     apply_url: cell("apply_url"),
